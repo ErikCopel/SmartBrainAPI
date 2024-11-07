@@ -1,101 +1,62 @@
 const express = require('express');
-const bcrypt = require('bcrypt-nodejs');
+const fetch = require('node-fetch');
+const cors = require('cors');
 
 const app = express();
+const PORT = 3003   ;
 
+app.use(cors());
 app.use(express.json());
 
-const database = {
-    users: [
-        {
-            id: '123',
-            name: 'John',
-            email: 'john@gmail.com',
-            password: 'cookies',
-            entries: 0,
-            joined: new Date()
-        },
-        {
-            id: '124',
-            name: 'Sally',
-            email: 'sally@gmail.com',
-            password: 'bananas',
-            entries: 0,
-            joined: new Date()
+app.post('/clarifai', async (req, res) => {
+
+    console.log('Requisição recebida');
+    console.log(req.body);
+
+  const { imageUrl } = req.body;
+  const PAT = '116907b4c07341c2a8033b100eba75ff';
+  const USER_ID = 'c0sa6dsagsbp';
+  const APP_ID = 'test';
+  const MODEL_ID = 'face-detection';
+
+  const requestBody = JSON.stringify({
+    "user_app_id": {
+      "user_id": USER_ID,
+      "app_id": APP_ID
+    },
+    "inputs": [
+      {
+        "data": {
+          "image": {
+            "url": imageUrl
+          }
         }
+      }
     ]
-}
+  });
 
-app.get('/' , (req , res) => {
-    res.send(database.users);
-});
+  try {
+    const response = await fetch(`https://api.clarifai.com/v2/models/${MODEL_ID}/outputs`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Key ${PAT}`,
+        'Content-Type': 'application/json'
+      },
+      body: requestBody
+    });
 
-app.post('/signin' , (req , res) => {
-    bcrypt.compare("apples", "$2a$10$nteBRluDSJe6nWn12Wx0juIN7tDTL9rBfYoEhkfaVWN0RUxvUfY/2", function(err, res) {
-        console.log('first guess', res)
-    });
-    bcrypt.compare("veggies", "$2a$10$nteBRluDSJe6nWn12Wx0juIN7tDTL9rBfYoEhkfaVWN0RUxvUfY/2", function(err, res) {
-        console.log('second guess', res)
-    });
-    
-    if (req.body.email === database.users[0].email && 
-        req.body.password === database.users[0].password){
-        res.json('success');
-    }
-    else {
-        res.status(400).json('error logging in');
-    }
-});
-
-app.post('/register' , (req , res) => {
-    const { email , name , password } = req.body;
-    bcrypt.hash(password, null, null, function(err, hash) {
-        console.log(hash);
-    });
-    database.users.push({
-        id: '125',
-        name: name,
-        email: email,
-        password: password,
-        entries: 0,
-        joined: new Date()
-    });
-    res.json(database.users[database.users.length - 1]);
-});
-
-app.get('/profile/:id' , (req , res) => {
-    const { id } = req.params;
-    let found = false;
-    database.users.forEach(user => {
-        if (user.id === id){
-            found = true;
-            return res.json(user);
-        }
-    });
-    if (!found){
-        res.status(400).json('not found');
-    }
-});
-
-app.put('/image' , (req , res) => {
-    const { id } = req.body;
-    let found = false;
-    database.users.forEach(user => {
-        if (user.id === id){
-            found = true;
-            user.entries++;
-            return res.json(user.entries);
-        }
-    });
-    if (!found){
-        res.status(400).json('not found');
-    }
+    const data = await response.json();
+    res.json(data);  // Envia o resultado de volta para o frontend
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Erro ao processar a solicitação para a API da Clarifai' });
+  }
 });
 
 
 
 
-app.listen(3001 , () => {
-    console.log('Server is running on http://localhost:3001');
-}
-);
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
