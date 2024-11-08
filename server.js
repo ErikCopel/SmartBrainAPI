@@ -88,7 +88,7 @@ app.get('/', (req, res) => {
 app.post('/signin', (req, res) => {
   if (req.body.email === database.users[0].email &&
     isPasswordValid(req.body.password, database.users[0].password)) {
-      res.status(200).json('success');
+      res.status(200).json(database.users[0]);
   } else {
     res.status(400).json('error logging in');
   }
@@ -104,7 +104,8 @@ app.post('/register', (req, res) => {
     entries: 0,
     joined: new Date()
   });
-  res.status(200).send(`success registering ${req.body.name}`);
+  //return the registered user
+  res.json(database.users[database.users.length - 1]);
 });
 
 app.get('/profile/:userId', (req, res) => {
