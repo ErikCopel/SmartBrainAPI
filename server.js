@@ -1,12 +1,18 @@
 const express = require('express');
 const fetch = require('node-fetch');
 const cors = require('cors');
+const bcrypt = require('bcrypt');
 
 const app = express();
 const PORT = 3003   ;
+const saltRounds = 10;
 
 app.use(cors());
 app.use(express.json());
+
+function isPasswordValid(password, hash) {
+  return bcrypt.compareSync(password, hash);
+}
 
 const database = {
   users: [
@@ -14,7 +20,7 @@ const database = {
       id: '123',
       name: 'John',
       email: 'john@gmail.com',
-      password: 'cookies',
+      password: '$2b$10$RWR16kxzP.m91B7xVa7xce26zznQBmmxqQmp3Qm06m/G3zn2FXKj6', // cookies
       entries: 0,
       joined: new Date()
     },
@@ -22,7 +28,7 @@ const database = {
       id: '124',
       name: 'Sally',
       email: 'sally@gmail.com',
-      password: 'bananas',
+      password: '$2b$10$QJmNskE2h6o.nlmfqKKGzuNyCqFmogXEHQFKBGkMxok9t73eacsbW', // bananas
       entries: 0,
       joined: new Date()
     }
@@ -81,7 +87,7 @@ app.get('/', (req, res) => {
 
 app.post('/signin', (req, res) => {
   if (req.body.email === database.users[0].email &&
-    req.body.password === database.users[0].password) {
+    isPasswordValid(req.body.password, database.users[0].password)) {
     res.json(database.users[0]);
   } else {
     res.status(400).json('error logging in');
@@ -94,7 +100,7 @@ app.post('/register', (req, res) => {
     id: '125',
     name: name,
     email: email,
-    password: password,
+    password: bcrypt.hashSync(password, saltRounds),
     entries: 0,
     joined: new Date()
   });

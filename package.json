@@ -12,6 +12,7 @@
     "nodemon": "^3.1.7"
   },
   "dependencies": {
+    "bcrypt": "^5.1.1",
     "bcrypt-nodejs": "^0.0.3",
     "clarifai-nodejs-grpc": "^10.9.8",
     "cors": "^2.8.5",
