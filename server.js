@@ -2,6 +2,18 @@ const express = require('express');
 const fetch = require('node-fetch');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
+const knex = require('knex');
+
+const db = knex({
+  client: 'pg',
+  connection: {
+    host: '127.0.0.1',
+    user: 'postgres',
+    password: '12345',
+    database: 'smart-brain'
+  }
+});
+
 
 const app = express();
 const PORT = 3003   ;
@@ -13,27 +25,6 @@ app.use(express.json());
 function isPasswordValid(password, hash) {
   return bcrypt.compareSync(password, hash);
 }
-
-const database = {
-  users: [
-    {
-      id: '123',
-      name: 'John',
-      email: 'john@gmail.com',
-      password: '$2b$10$RWR16kxzP.m91B7xVa7xce26zznQBmmxqQmp3Qm06m/G3zn2FXKj6', // cookies
-      entries: 0,
-      joined: new Date()
-    },
-    {
-      id: '124',
-      name: 'Sally',
-      email: 'sally@gmail.com',
-      password: '$2b$10$QJmNskE2h6o.nlmfqKKGzuNyCqFmogXEHQFKBGkMxok9t73eacsbW', // bananas
-      entries: 0,
-      joined: new Date()
-    }
-  ]
-};
 
 app.post('/clarifai', async (req, res) => {
 
@@ -86,49 +77,54 @@ app.get('/', (req, res) => {
 });
 
 app.post('/signin', (req, res) => {
-  if (req.body.email === database.users[0].email &&
-    isPasswordValid(req.body.password, database.users[0].password)) {
-      res.status(200).json(database.users[0]);
+  // find user in database
+  const user = database.users.find(user => user.email === req.body.email);  
+
+  if (!user || !isPasswordValid(req.body.password, user.password)) {
+    return res.status(400).json('Incorrect email or password');
   } else {
-    res.status(400).json('error logging in');
+    res.json(user);
   }
 });
 
 app.post('/register', (req, res) => {
   const { email, name, password } = req.body;
-  database.users.push({
-    id: '125',
-    name: name,
-    email: email,
-    password: bcrypt.hashSync(password, saltRounds),
-    entries: 0,
-    joined: new Date()
-  });
-  //return the registered user
-  res.json(database.users[database.users.length - 1]);
+  db('users')
+    .returning('*')
+    .insert({
+      email: email,
+      name: name,
+      joined: new Date()
+  })
+    .then(user => {
+      res.json(user[0]);
+  })
+    .catch(err => res.status(400).json('unable to register'));
 });
 
 app.get('/profile/:userId', (req, res) => {
   const { userId } = req.params;
-  const user = database.users.find(user => user.id === userId);
 
-  if (user) {
-    res.json(user);
-  } else {
-    res.status(404).json('user not found');
-  }
+  db.select('*').from('users').where({id: userId})
+    .then(user => {
+      if (user.length) {
+        res.json(user[0]);
+      } else {
+        res.status(404).json('error getting user');
+      }
+    });
 });
 
 app.put('/image', (req, res) => {
   const { userId } = req.body;
-  const user = database.users.find(user => user.id === userId);
-
-  if (user) {
-    user.entries++;
-    res.json(user.entries);
-  } else {
-    res.status(404).json('user not found');
-  }
+  console.log("USER ID:", userId);
+  db('users').where('id', '=', userId)
+    .increment('entries', 1)
+    .returning('entries')
+    .then(entries => {
+      res.json(entries[0].entries);
+    })
+    .catch(err => res.status(400).json('unable to get entries'));
 });
 
 app.listen(PORT, () => {
