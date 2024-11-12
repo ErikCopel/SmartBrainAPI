@@ -78,29 +78,53 @@ app.get('/', (req, res) => {
 
 app.post('/signin', (req, res) => {
   // find user in database
-  const user = database.users.find(user => user.email === req.body.email);  
 
-  if (!user || !isPasswordValid(req.body.password, user.password)) {
-    return res.status(400).json('Incorrect email or password');
-  } else {
-    res.json(user);
-  }
+  db('login').where('email', '=', req.body.email)
+    .where('password', '=', req.body.password)
+    .then(user => {
+      if (user.length) {
+        res.json(user[0]);
+      } else {
+        res.status(400).json('Incorrect email or password');
+      }
+    })
+
+  // if (!user || !isPasswordValid(req.body.password, user.password)) {
+  //   return res.status(400).json('Incorrect email or password');
+  // } else {
+  //   res.json(user);
+  // }
 });
 
 app.post('/register', (req, res) => {
   const { email, name, password } = req.body;
-  db('users')
-    .returning('*')
-    .insert({
-      email: email,
-      name: name,
-      joined: new Date()
-  })
-    .then(user => {
-      res.json(user[0]);
-  })
-    .catch(err => res.status(400).json('unable to register'));
+  const hash = bcrypt.hashSync(password, saltRounds);
+
+  db.transaction(trx => {
+    trx.insert({
+      hash: hash,
+      email: email
+    })
+      .into('login')
+      .returning('email')
+      .then(loginEmail => {
+        return trx('users')
+          .returning('*')
+          .insert({
+            email: loginEmail[0].email,
+            name: name,
+            joined: new Date()
+        })
+          .then(user => {
+            res.json(user[0]);
+        })
+          .catch(err => res.status(400).json('unable to register'));
+      })
+      .then(trx.commit)
+      .catch(trx.rollback);
+  });
 });
+
 
 app.get('/profile/:userId', (req, res) => {
   const { userId } = req.params;
