@@ -22,10 +22,6 @@ const saltRounds = 10;
 app.use(cors());
 app.use(express.json());
 
-function isPasswordValid(password, hash) {
-  return bcrypt.compareSync(password, hash);
-}
-
 app.post('/clarifai', async (req, res) => {
 
     console.log('Requisição recebida');
@@ -73,27 +69,28 @@ app.post('/clarifai', async (req, res) => {
 });
 
 app.get('/', (req, res) => {
-  res.send(database.users);
+  res.send('success');
 });
 
 app.post('/signin', (req, res) => {
   // find user in database
 
-  db('login').where('email', '=', req.body.email)
-    .where('password', '=', req.body.password)
-    .then(user => {
-      if (user.length) {
-        res.json(user[0]);
-      } else {
-        res.status(400).json('Incorrect email or password');
-      }
-    })
-
-  // if (!user || !isPasswordValid(req.body.password, user.password)) {
-  //   return res.status(400).json('Incorrect email or password');
-  // } else {
-  //   res.json(user);
-  // }
+  db.select('email', 'hash').from('login')
+  .where('email', '=', req.body.email)
+  .then(data => {
+    const isValid = bcrypt.compareSync(req.body.password, data[0].hash);
+    if (isValid) {
+      return db.select('*').from('users')
+        .where('email', '=', req.body.email)
+        .then(user => {
+          res.json(user[0]);
+        })
+        .catch(err => res.status(400).json('unable to get user'));
+    } else {
+      res.status(400).json('wrong credentials');
+    }
+  })
+  .catch(err => res.status(400).json('wrong credentials'));
 });
 
 app.post('/register', (req, res) => {
@@ -122,7 +119,8 @@ app.post('/register', (req, res) => {
       })
       .then(trx.commit)
       .catch(trx.rollback);
-  });
+  })
+    .catch(err => res.status(400).json('unable to register'));
 });
 
 
