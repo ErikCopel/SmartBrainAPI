@@ -21,7 +21,7 @@ const db = knex({
 
 
 const app = express();
-const PORT = 3003   ;
+const PORT = 3003;
 const saltRounds = 10;
 
 app.use(cors());
@@ -29,8 +29,8 @@ app.use(express.json());
 
 app.post('/clarifai', async (req, res) => {
 
-    console.log('Requisição recebida');
-    console.log(req.body);
+  console.log('Requisição recebida');
+  console.log(req.body);
 
   const { imageUrl } = req.body;
   const PAT = '116907b4c07341c2a8033b100eba75ff';
