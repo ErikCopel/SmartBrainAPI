@@ -79,6 +79,6 @@ app.post('/register', register.handleRegister(db, bcrypt, saltRounds));
 app.get('/profile/:userId', profile.handleProfileGet(db));
 app.put('/image', image.handleImage(db));
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+app.listen(process.env.PORT || PORT, () => {
+  console.log(`Server running on port ${process.env.PORT}`);
 });
