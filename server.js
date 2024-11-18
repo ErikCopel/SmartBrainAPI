@@ -1,3 +1,4 @@
+const dotenv = require('dotenv');
 const express = require('express');
 const fetch = require('node-fetch');
 const cors = require('cors');
@@ -12,10 +13,10 @@ const image = require('./controllers/image');
 const db = knex({
   client: 'pg',
   connection: {
-    host: 'process.env.PG_HOST',
-    user: 'process.env.PG_USER',
-    password: 'process.env.PG_PASSWORD',
-    database: 'process.env.PG_DATABASE',
+    host: process.env.PG_HOST,
+    user: process.env.PG_USER,
+    password: process.env.PG_PASSWORD,
+    database: process.env.PG_DATABASE,
     ssl: {
       rejectUnauthorized: false
     }
