@@ -12,13 +12,15 @@ const image = require('./controllers/image');
 const db = knex({
   client: 'pg',
   connection: {
-    host: '127.0.0.1',
-    user: 'postgres',
-    password: '12345',
-    database: 'smart-brain'
+    host: 'process.env.PG_HOST',
+    user: 'process.env.PG_USER',
+    password: 'process.env.PG_PASSWORD',
+    database: 'process.env.PG_DATABASE',
+    ssl: {
+      rejectUnauthorized: false
+    }
   }
 });
-
 
 const app = express();
 const PORT = 3003;
@@ -80,5 +82,5 @@ app.get('/profile/:userId', profile.handleProfileGet(db));
 app.put('/image', image.handleImage(db));
 
 app.listen(process.env.PORT || PORT, () => {
-  console.log(`Server running on port ${process.env.PORT}`);
+  console.log(`Server running on port ${process.env.PORT || PORT}`);
 });
